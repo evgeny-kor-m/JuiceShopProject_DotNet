@@ -1,0 +1,22 @@
+﻿# Build results
+bin/
+obj/
+.vs/
+
+# Test results
+TestResults/
+allureConfig.json
+
+# Logs
+logs/
+*.log
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg
