@@ -10,7 +10,10 @@ using Serilog.Events;
 [SetUpFixture]
 public class GlobalSetup
 {
-    private static string allureResultsPath;
+    private static string? projectRoot;
+    private static string? screenshotsDir;
+    private static string? logsDir;
+    private static string? allureResultsPath;
 
     [OneTimeSetUp]
     public void RunBeforeAnyTests()
@@ -19,67 +22,28 @@ public class GlobalSetup
         SelfLog.Enable(Console.Error);
 
         // Создание директорий
-        string projectRoot = ConfigReader.GetProjectRoot();
-        string screenshotsDir = ConfigReader.GetScreenshotsPath();
-        string logsDir = ConfigReader.GetLogsPath();
+        projectRoot = ConfigReader.GetProjectRoot();
+        screenshotsDir = ConfigReader.GetScreenshotsPath();
+        logsDir = ConfigReader.GetLogsPath();
 
         string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
-        allureResultsPath = Path.Combine(projectRoot, "TestResults", $"Allure_{timestamp}");
 
         Directory.CreateDirectory(screenshotsDir);
         Directory.CreateDirectory(logsDir);
 
-        // ВАЖНО: Очистить старую директорию и создать новую
-        if (Directory.Exists(allureResultsPath))
-            Directory.Delete(allureResultsPath, true);
-        
-        Directory.CreateDirectory(allureResultsPath);
-
-        // Конфигурация Allure - ЭТО ОБЯЗАТЕЛЬНО!
-        string allureConfigPath = Path.Combine(projectRoot, "allureConfig.json");
-        var allureConfig = new JObject(
-            new JProperty("allure", new JObject(
-                new JProperty("directory", allureResultsPath)
-            ))
-        );
-
-        File.WriteAllText(allureConfigPath, allureConfig.ToString());
-
-        // Устанавливаем переменные окружения
-        Environment.SetEnvironmentVariable("ALLURE_CONFIG", allureConfigPath);
-        Environment.SetEnvironmentVariable("allure_results_directory", allureResultsPath);
-
-        // Получаем уровень для ГЛОБАЛЬНОГО лога
-        if (!Enum.TryParse(ConfigReader.GetRunLogLevel(), true, out LogEventLevel runLogLevel))
-            runLogLevel = LogEventLevel.Information; // Fallback
-        
-        string logFilePath = Path.Combine(logsDir, $"RunLog-{timestamp}.log");
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Is(runLogLevel) // Устанавливаем глобальный уровень
-            .Enrich.With<TestNameEnricher>() // ✅ Теперь будет "GLOBAL" вместо пустоты
-            .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information) // Консоль часто ограничивают
-            .WriteTo.File(
-                path: logFilePath,
-                restrictedToMinimumLevel: runLogLevel, // Применяем уровень к файлу
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{TestName}] {Message:lj}{NewLine}{Exception}")
-            .CreateLogger();
-
         Log.Information("\n\n===================================");
         Log.Information("====== GLOBAL SETUP STARTED =======");
-        Log.Information($"Log level (Run): {runLogLevel}"); // Логируем установленный уровень
         Log.Information($"Project root: {projectRoot}");
-        Log.Information($"Log file: {logFilePath}");
         Log.Information($"Screenshots: {screenshotsDir}");
-        Log.Information($"Allure results: {allureResultsPath}");
-        Log.Information($"Allure config: {allureConfigPath}");
+
+        CreateGlobalTestLogger(timestamp);
+        AllureConfiguration(timestamp);
+
         Log.Information($"Test run started: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         Log.Information("===================================");
         Log.Information("====== GLOBAL SETUP COMPLETED =======");
 
 
-        TestContext.Progress.WriteLine($"✅ Log file: {logFilePath}");
-        TestContext.Progress.WriteLine($"✅ Allure results: {allureResultsPath}");
-        TestContext.Progress.WriteLine($"✅ Allure config: {allureConfigPath}");
         TestContext.Progress.WriteLine("GLOBAL SETUP COMPLETED.\n");
     }
 
@@ -178,5 +142,65 @@ public class GlobalSetup
         {
             Log.Error($"❌ Allure report generation error: {ex.Message}");
         }
+    }
+
+    private void AllureConfiguration(string timestamp)
+    {
+        allureResultsPath = Path.Combine(projectRoot, "TestResults", $"Allure_{timestamp}");
+
+        // ВАЖНО: Очистить старую директорию и создать новую
+        if (Directory.Exists(allureResultsPath))
+            Directory.Delete(allureResultsPath, true);
+
+        Directory.CreateDirectory(allureResultsPath);
+
+        // Конфигурация Allure - ЭТО ОБЯЗАТЕЛЬНО!
+        string allureConfigPath = Path.Combine(projectRoot, "allureConfig.json");
+        var allureConfig = new JObject(
+            new JProperty("allure", new JObject(
+                new JProperty("directory", allureResultsPath)
+            ))
+        );
+
+        File.WriteAllText(allureConfigPath, allureConfig.ToString());
+
+        // Устанавливаем переменные окружения
+        Environment.SetEnvironmentVariable("ALLURE_CONFIG", allureConfigPath);
+        Environment.SetEnvironmentVariable("allure_results_directory", allureResultsPath);
+
+        Log.Information($"Allure results: {allureResultsPath}");
+        Log.Information($"Allure config: {allureConfigPath}");
+
+        TestContext.Progress.WriteLine($"✅ Allure results: {allureResultsPath}");
+        TestContext.Progress.WriteLine($"✅ Allure config: {allureConfigPath}");
+    }
+
+    private void CreateGlobalTestLogger(string timestamp)
+    {
+        // Получаем уровень для ГЛОБАЛЬНОГО лога
+        if (!Enum.TryParse(ConfigReader.GetRunLogLevel(), true, out LogEventLevel runLogLevel))
+            runLogLevel = LogEventLevel.Information; // Fallback
+
+        string logFilePath = Path.Combine(logsDir, $"RunLog-{timestamp}.log");
+        try
+        {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Is(runLogLevel) // Устанавливаем глобальный уровень
+                .Enrich.With<TestNameEnricher>() // ✅ Теперь будет "GLOBAL" вместо пустоты
+                .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information) // Консоль часто ограничивают
+                .WriteTo.File(
+                    path: logFilePath,
+                    restrictedToMinimumLevel: runLogLevel, // Применяем уровень к файлу
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{TestName}] {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"❌ Global test logger creation error: {ex.Message}");
+        }
+        Log.Information($"Log level (Run): {runLogLevel}"); // Логируем установленный уровень
+        Log.Information($"Log file: {logFilePath}");
+
+        TestContext.Progress.WriteLine($"✅ Log file: {logFilePath}");
     }
 }
