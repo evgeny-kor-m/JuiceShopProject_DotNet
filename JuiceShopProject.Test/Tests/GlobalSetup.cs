@@ -75,20 +75,17 @@ public class GlobalSetup
             {
                 // Проверяем наличие JSON файлов
                 var jsonFiles = Directory.GetFiles(allureResultsPath, "*.json");
-                Log.Information($"Found {jsonFiles.Length} JSON result files in {allureResultsPath}");
-
-                if (jsonFiles.Length == 0)
-                {
+                
+                if (jsonFiles.Length == 0){
                     Log.Warning("⚠️ No Allure JSON files found in results directory.");
                     return;
                 }
-
-                Log.Information($"Generating Allure report from {allureResultsPath}...");
+               
+                Log.Information($"Found {jsonFiles.Length} JSON result files. Generating Allure report from {allureResultsPath}...");
 
                 var processGenerate = new System.Diagnostics.Process
                 {
-                    StartInfo = new System.Diagnostics.ProcessStartInfo
-                    {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo{
                         FileName = @"E:\Git_Projects\owasp-juiceshop-vs-project\allure-2.35.1\bin\allure.bat",
                         Arguments = $"generate \"{allureResultsPath}\" -o \"{reportOutput}\" --clean",
                         RedirectStandardOutput = true,
@@ -104,44 +101,47 @@ public class GlobalSetup
                 processGenerate.WaitForExit();
 
                 if (processGenerate.ExitCode == 0)
-                {
-                    Log.Information($"✅ Allure report generated successfully: {reportOutput}");
-
-                    // АВТОМАТИЧЕСКИ ОТКРЫВАЕМ ОТЧЕТ
-                    Log.Information($"Opening Allure report...");
-
-                    var processOpen = new System.Diagnostics.Process
-                    {
-                        StartInfo = new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = @"E:\Git_Projects\owasp-juiceshop-vs-project\allure-2.35.1\bin\allure.bat",
-                            Arguments = $"open \"{reportOutput}\"",
-                            UseShellExecute = false,
-                            CreateNoWindow = true
-                        }
-                    };
-
-                    processOpen.Start();
-                    Log.Information($"✅ Allure report opened in browser");
-                    Log.Information($"   If not opened automatically, run: allure open \"{reportOutput}\"");
-                }
-                else
-                {
+                    OpenAllureReport(reportOutput);
+                else{
                     Log.Information($"⚠️ Allure report generation failed:");
                     Log.Information($"   Output: {output}");
                     Log.Information($"   Errors: {errors}");
                     Log.Warning($"⚠️ Allure report generation failed. Exit code: {processGenerate.ExitCode}");
                 }
             }
-            else
-            {
-                Log.Warning($"⚠️ Allure results path not found or empty: {allureResultsPath}");
-            }
+            else Log.Warning($"⚠️ Allure results path not found or empty: {allureResultsPath}");
         }
         catch (Exception ex)
         {
             Log.Error($"❌ Allure report generation error: {ex.Message}");
         }
+    }
+    private void OpenAllureReport(string reportPath)
+    {
+        Log.Information($"✅ Allure report generated successfully: {reportPath}");
+        Log.Information($"Opening Allure report...");
+
+        var processOpen = new System.Diagnostics.Process
+        {
+            StartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = @"E:\Git_Projects\owasp-juiceshop-vs-project\allure-2.35.1\bin\allure.bat",
+                Arguments = $"open \"{reportPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+        try
+        {
+            processOpen.Start();
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"❌ Fail to open Allure report with: {ex.Message}");
+            return;
+        }
+        Log.Information($"✅ Allure report opened in browser");
+        Log.Information($"   If not opened automatically, run: allure open \"{reportPath}\"");
     }
 
     private void AllureConfiguration(string timestamp)
