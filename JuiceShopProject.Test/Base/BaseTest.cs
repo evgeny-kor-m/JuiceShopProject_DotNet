@@ -2,17 +2,18 @@
 // Base/BaseTest.cs
 // ==============================================
 
-using NUnit.Framework;
 using Allure.Net.Commons;
 using JuiceShopProject.Test.Drivers;
 using JuiceShopProject.Test.Utilities;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
+using NUnit.Framework;
 using OpenQA.Selenium;
 using Serilog;
+using Serilog.Context;
+using Serilog.Core;
 using Serilog.Events;
 using System;
 using System.IO;
-using Serilog.Core;
-using Serilog.Context;
 
 namespace JuiceShopProject.Test.Base
 {
@@ -27,9 +28,140 @@ namespace JuiceShopProject.Test.Base
         protected IWebDriver Driver;
         private string _testLogFilePath;
         private ILogger _originalGlobalLogger;
-
+        
         [SetUp]
         public void SetUp()
+        {
+
+            // Назначаем новый временный логгер статическому полю Log.Logger
+            Log.Logger = CreateLocalTestLoger();
+
+            Log.Information($"TEST SETUP STARTED.");
+
+            // Driver initialization using the Factory, which reads the browser from config
+            Driver = WebDriverFactory.CreateDriver();
+
+            // Apply implicit wait timeout from configuration
+            Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(ConfigReader.GetImplicitWait());
+            Driver.Manage().Window.Maximize();
+
+            Log.Information("Driver initialized successfully.");
+
+            // Navigation to the base URL from configuration
+            string baseUrl = ConfigReader.GetBaseUrl() ?? "http://localhost:3000";
+            Driver.Navigate().GoToUrl(baseUrl);
+            Log.Information($"Navigated to: {baseUrl}");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            var outcome = TestContext.CurrentContext.Result.Outcome.Status;
+            var testName = TestContext.CurrentContext.Test.FullName;
+            
+            // Логируем все ошибки, используя временный логгер
+            if ((Driver != null) && outcome == NUnit.Framework.Interfaces.TestStatus.Failed)
+            {
+                AttachScreenshotToAllureReport(testName);
+                AttachLogFileToAllureReport(testName);
+            }
+            Log.Information("TEST TEARDOWN COMPLETED.");
+            try
+            {
+                if (Driver != null)
+                {
+                    Driver.Quit();
+                    Driver.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning($"Error during driver teardown: {ex.Message}");
+            }
+
+            CloseLocalTestLoger();
+
+        }
+        private void AttachScreenshotToAllureReport(string testName)
+        {
+            string? screenshotPath = null;
+            try
+            {
+                string screenshotsDir = ConfigReader.GetScreenshotsPath();
+                Directory.CreateDirectory(screenshotsDir);
+                string safeTestName = string.Join("_", testName.Split(Path.GetInvalidFileNameChars()));
+                string screenshotFilename = $"{safeTestName}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+                screenshotPath = Path.Combine(screenshotsDir, screenshotFilename);
+
+                var screenshot = ((ITakesScreenshot)Driver).GetScreenshot();
+                screenshot.SaveAsFile(screenshotPath);
+
+                // Простое добавление скриншота без проверки контекста
+                try
+                {
+                    // 1. Копируем файл в папку Allure, чтобы он был доступен после завершения теста
+                    // (Используем GUID для уникальности имени файла внутри отчета Allure)
+                    string attachmentFileName = Guid.NewGuid().ToString() + ".png";
+                    string attachmentSourcePath = AllureLifecycle.Instance.ResultsDirectory + Path.DirectorySeparatorChar + attachmentFileName;
+
+                    File.Copy(screenshotPath, attachmentSourcePath, true);
+
+                    // 2. Добавляем информацию о прикреплении к текущему тесту
+                    AllureLifecycle.Instance.UpdateTestCase(testResult =>
+                    {
+                        testResult.attachments.Add(new Attachment
+                        {
+                            name = $"Screenshot: {safeTestName}",
+                            source = attachmentFileName, // Имя файла, которое Allure будет искать в своей папке
+                            type = "image/png"
+                        });
+                    });
+
+                    Log.Information($"Screenshot saved locally and manually attached to Allure: {screenshotPath}");
+                }
+                catch (Exception allureEx)
+                {
+                    Log.Warning($"Could not attach screenshot to Allure: {allureEx.Message}");
+                }
+                Log.Error($"Test {testName} failed. Screenshot saved: {screenshotPath}");
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Error while capturing screenshot: {e.Message}");
+            }
+        }
+        private void AttachLogFileToAllureReport(string testName)
+        {
+            // --- НОВОЕ: Прикрепление Лог-файла ---
+            if (File.Exists(_testLogFilePath))
+            {
+                try
+                {
+                    // 1. Копируем файл лога в папку Allure
+                    string attachmentFileName = Guid.NewGuid().ToString() + ".log";
+                    string attachmentSourcePath = AllureLifecycle.Instance.ResultsDirectory + Path.DirectorySeparatorChar + attachmentFileName;
+                    File.Copy(_testLogFilePath, attachmentSourcePath, true);
+
+                    // 2. Добавляем информацию о прикреплении к текущему тесту
+                    AllureLifecycle.Instance.UpdateTestCase(testResult =>
+                    {
+                        testResult.attachments.Add(new Attachment
+                        {
+                            name = $"Test Log: {testName}",
+                            source = attachmentFileName,
+                            type = "text/plain" // Тип для лог-файлов
+                        });
+                    });
+
+                    Log.Information($"Лог-файл успешно прикреплен к Allure отчету.");
+                }
+                catch (Exception allureEx)
+                {
+                    Log.Warning($"Не удалось прикрепить лог к Allure: {allureEx.Message}");
+                }
+            }
+        }
+        private ILogger CreateLocalTestLoger()
         {
             // 1. Создание уникального пути для лог-файла текущего теста
             var safeTestName = string.Join("_", TestContext.CurrentContext.Test.MethodName.Split(Path.GetInvalidFileNameChars()));
@@ -56,133 +188,18 @@ namespace JuiceShopProject.Test.Base
                 .WriteTo.Logger(_originalGlobalLogger)
                 .CreateLogger();
 
-            // Назначаем новый временный логгер статическому полю Log.Logger
-            Log.Logger = testLogger;
-
-            Log.Information($"TEST SETUP STARTED. Log Level (Test): {testLogLevel}. Logs writes to: {_testLogFilePath}.");
-
-            // Driver initialization using the Factory, which reads the browser from config
-            Driver = WebDriverFactory.CreateDriver();
-
-            // Apply implicit wait timeout from configuration
-            Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(ConfigReader.GetImplicitWait());
-            Driver.Manage().Window.Maximize();
-
-            Log.Information("Driver initialized successfully.");
-
-            // Navigation to the base URL from configuration
-            string baseUrl = ConfigReader.GetBaseUrl() ?? "http://localhost:3000";
-            Driver.Navigate().GoToUrl(baseUrl);
-            Log.Information($"Navigated to: {baseUrl}");
+            Log.Information($"(Test) Log Level : {testLogLevel}. Logs writes to: {_testLogFilePath}.");
+            return testLogger;
         }
-
-        [TearDown]
-        public void TearDown()
+        private void CloseLocalTestLoger()
         {
-            var outcome = TestContext.CurrentContext.Result.Outcome.Status;
-            var testName = TestContext.CurrentContext.Test.FullName;
-            
-            // Логируем все ошибки, используя временный логгер
-            if ((Driver != null) && outcome == NUnit.Framework.Interfaces.TestStatus.Failed)
-            {
-                string screenshotPath = null;
-                try
-                {
-                    string screenshotsDir = ConfigReader.GetScreenshotsPath();
-                    Directory.CreateDirectory(screenshotsDir);
-                    string safeTestName = string.Join("_", testName.Split(Path.GetInvalidFileNameChars()));
-                    string screenshotFilename = $"{safeTestName}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
-                    screenshotPath = Path.Combine(screenshotsDir, screenshotFilename);
-
-                    var screenshot = ((ITakesScreenshot)Driver).GetScreenshot();
-                    screenshot.SaveAsFile(screenshotPath);
-
-                    // Простое добавление скриншота без проверки контекста
-                    try
-                    {
-                        // 1. Копируем файл в папку Allure, чтобы он был доступен после завершения теста
-                        // (Используем GUID для уникальности имени файла внутри отчета Allure)
-                        string attachmentFileName = Guid.NewGuid().ToString() + ".png";
-                        string attachmentSourcePath = AllureLifecycle.Instance.ResultsDirectory + Path.DirectorySeparatorChar + attachmentFileName;
-                        
-                        File.Copy(screenshotPath, attachmentSourcePath, true);
-
-                        // 2. Добавляем информацию о прикреплении к текущему тесту
-                        AllureLifecycle.Instance.UpdateTestCase(testResult =>
-                        {
-                            testResult.attachments.Add(new Attachment
-                            {
-                                name = $"Screenshot: {safeTestName}",
-                                source = attachmentFileName, // Имя файла, которое Allure будет искать в своей папке
-                                type = "image/png"
-                            });
-                        });
-
-                        Log.Information($"Screenshot saved locally and manually attached to Allure: {screenshotPath}");
-
-
-                    }
-                    catch (Exception allureEx)
-                    {
-                        Log.Warning($"Could not attach screenshot to Allure: {allureEx.Message}");
-                    }
-
-                    Log.Error($"Test {testName} failed. Screenshot saved: {screenshotPath}");
-                }
-                catch (Exception e)
-                {
-                    Log.Error($"Error while capturing screenshot: {e.Message}");
-                }
-
-                // --- НОВОЕ: Прикрепление Лог-файла ---
-                if (File.Exists(_testLogFilePath))
-                {
-                    try
-                    {
-                        // 1. Копируем файл лога в папку Allure
-                        string attachmentFileName = Guid.NewGuid().ToString() + ".log";
-                        string attachmentSourcePath = AllureLifecycle.Instance.ResultsDirectory + Path.DirectorySeparatorChar + attachmentFileName;
-                        File.Copy(_testLogFilePath, attachmentSourcePath, true);
-
-                        // 2. Добавляем информацию о прикреплении к текущему тесту
-                        AllureLifecycle.Instance.UpdateTestCase(testResult =>
-                        {
-                            testResult.attachments.Add(new Attachment
-                            {
-                                name = $"Test Log: {testName}",
-                                source = attachmentFileName,
-                                type = "text/plain" // Тип для лог-файлов
-                            });
-                        });
-
-                        Log.Information($"Лог-файл успешно прикреплен к Allure отчету.");
-                    }
-                    catch (Exception allureEx)
-                    {
-                        Log.Warning($"Не удалось прикрепить лог к Allure: {allureEx.Message}");
-                    }
-                }
-            }
-            Log.Information("TEST TEARDOWN COMPLETED.");
             // Закрываем и очищаем буферы временного логгера
             Log.CloseAndFlush();
-            
+
             // Восстанавливаем оригинальный глобальный логгер
             if (_originalGlobalLogger != null)
             {
                 Log.Logger = _originalGlobalLogger;
-            }
-            try
-            {
-                if (Driver != null)
-                {
-                    Driver.Quit();
-                    Driver.Dispose();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Warning($"Error during driver teardown: {ex.Message}");
             }
             // Удаляем временный файл после прикрепления
             try
@@ -195,9 +212,6 @@ namespace JuiceShopProject.Test.Base
             {
                 Log.Warning($"Could not delete temporary log file: {delEx.Message}");
             }
-            
-
         }
-
     }
 }   

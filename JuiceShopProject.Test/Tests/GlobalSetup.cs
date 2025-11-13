@@ -31,9 +31,8 @@ public class GlobalSetup
 
         // ВАЖНО: Очистить старую директорию и создать новую
         if (Directory.Exists(allureResultsPath))
-        {
             Directory.Delete(allureResultsPath, true);
-        }
+        
         Directory.CreateDirectory(allureResultsPath);
 
         // Конфигурация Allure - ЭТО ОБЯЗАТЕЛЬНО!
@@ -43,18 +42,17 @@ public class GlobalSetup
                 new JProperty("directory", allureResultsPath)
             ))
         );
+
         File.WriteAllText(allureConfigPath, allureConfig.ToString());
 
         // Устанавливаем переменные окружения
         Environment.SetEnvironmentVariable("ALLURE_CONFIG", allureConfigPath);
         Environment.SetEnvironmentVariable("allure_results_directory", allureResultsPath);
 
-        // Инициализация логгера
         // Получаем уровень для ГЛОБАЛЬНОГО лога
         if (!Enum.TryParse(ConfigReader.GetRunLogLevel(), true, out LogEventLevel runLogLevel))
-        {
             runLogLevel = LogEventLevel.Information; // Fallback
-        }
+        
         string logFilePath = Path.Combine(logsDir, $"RunLog-{timestamp}.log");
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Is(runLogLevel) // Устанавливаем глобальный уровень
@@ -113,16 +111,14 @@ public class GlobalSetup
             {
                 // Проверяем наличие JSON файлов
                 var jsonFiles = Directory.GetFiles(allureResultsPath, "*.json");
-                TestContext.Progress.WriteLine($"Found {jsonFiles.Length} JSON result files in {allureResultsPath}");
+                Log.Information($"Found {jsonFiles.Length} JSON result files in {allureResultsPath}");
 
                 if (jsonFiles.Length == 0)
                 {
-                    TestContext.Progress.WriteLine("⚠️ No Allure result files found!");
-                    Log.Warning("No Allure JSON files found in results directory.");
+                    Log.Warning("⚠️ No Allure JSON files found in results directory.");
                     return;
                 }
 
-                TestContext.Progress.WriteLine($"Generating Allure report from {allureResultsPath}...");
                 Log.Information($"Generating Allure report from {allureResultsPath}...");
 
                 var processGenerate = new System.Diagnostics.Process
@@ -145,11 +141,10 @@ public class GlobalSetup
 
                 if (processGenerate.ExitCode == 0)
                 {
-                    TestContext.Progress.WriteLine($"✅ Allure report generated: {reportOutput}");
-                    Log.Information($"Allure report generated successfully: {reportOutput}");
+                    Log.Information($"✅ Allure report generated successfully: {reportOutput}");
 
                     // АВТОМАТИЧЕСКИ ОТКРЫВАЕМ ОТЧЕТ
-                    TestContext.Progress.WriteLine($"Opening Allure report...");
+                    Log.Information($"Opening Allure report...");
 
                     var processOpen = new System.Diagnostics.Process
                     {
@@ -163,27 +158,25 @@ public class GlobalSetup
                     };
 
                     processOpen.Start();
-                    TestContext.Progress.WriteLine($"✅ Allure report opened in browser");
-                    TestContext.Progress.WriteLine($"   If not opened automatically, run: allure open \"{reportOutput}\"");
+                    Log.Information($"✅ Allure report opened in browser");
+                    Log.Information($"   If not opened automatically, run: allure open \"{reportOutput}\"");
                 }
                 else
                 {
-                    TestContext.Progress.WriteLine($"⚠️ Allure report generation failed:");
-                    TestContext.Progress.WriteLine($"   Output: {output}");
-                    TestContext.Progress.WriteLine($"   Errors: {errors}");
-                    Log.Warning($"Allure report generation failed. Exit code: {processGenerate.ExitCode}");
+                    Log.Information($"⚠️ Allure report generation failed:");
+                    Log.Information($"   Output: {output}");
+                    Log.Information($"   Errors: {errors}");
+                    Log.Warning($"⚠️ Allure report generation failed. Exit code: {processGenerate.ExitCode}");
                 }
             }
             else
             {
-                TestContext.Progress.WriteLine($"⚠️ Allure results path not found or empty: {allureResultsPath}");
-                Log.Warning($"Allure results path issue: {allureResultsPath}");
+                Log.Warning($"⚠️ Allure results path not found or empty: {allureResultsPath}");
             }
         }
         catch (Exception ex)
         {
             Log.Error($"❌ Allure report generation error: {ex.Message}");
-            TestContext.Progress.WriteLine($"❌ Allure report generation error: {ex.Message}");
         }
     }
 }

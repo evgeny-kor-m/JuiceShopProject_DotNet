@@ -38,7 +38,7 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Waits for an element to be visible on the page.
         /// </summary>
-        [AllureStep("Waiting for element visibility: {0}")]
+        [AllureStep("Waiting for element visibility: {locator}")]
         protected IWebElement WaitForElementVisible(By locator)
         {
             Log.Debug($"Waiting for element visibility: {locator}");
@@ -48,7 +48,7 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Waits for an element to be clickable on the page.
         /// </summary>
-        [AllureStep("Waiting for element clickable: {0}")]
+        [AllureStep("Waiting for element clickable: {locator}")]
         protected IWebElement WaitForElementClickable(By locator)
         {
             Log.Debug($"Waiting for element clickable: {locator}");
@@ -86,7 +86,7 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Clicks an element after waiting for it to be clickable.
         /// </summary>
-        [AllureStep("Clicking element: {0}")]
+        [AllureStep("Clicking element: {locator}")]
         protected void ClickElement(By locator)
         {
             try
@@ -109,7 +109,7 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Clears the input field and enters the specified text after waiting for visibility.
         /// </summary>
-        [AllureStep("Clears the input field and text '{1}' in element: {0}")]
+        [AllureStep("Clears the input field and text '{text}' in element: {locator}")]
         protected void EnterText(By locator, string text)
         {
             Log.Debug($"Clears the input field and enters the specified text '{text}' after waiting for visibility element: '{locator}'");
@@ -121,7 +121,7 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Retrieves the text content of a visible element.
         /// </summary>
-        [AllureStep("Retrieves the text content of a visible element: {0}")]
+        [AllureStep("Retrieves the text content of a visible element: {locator}")]
         protected string GetElementText(By locator)
         {
             Log.Debug($"Retrieves the text content of a visible element: '{locator}'");
@@ -132,7 +132,7 @@ namespace JuiceShopProject.Test.Base
         /// Checks if an element is currently displayed on the page.
         /// Handles NoSuchElementException safely.
         /// </summary>
-        [AllureStep("Checks if an element is currently displayed on the page: {0}")]
+        [AllureStep("Checks if an element is currently displayed on the page: {locator}")]
         protected bool IsElementDisplayed(By locator)
         {
             try
@@ -150,7 +150,7 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Scrolls the page until the specified element is visible in the viewport.
         /// </summary>
-        [AllureStep("Scrolls the page until the specified element is visible in the viewport: {0}")]
+        [AllureStep("Scrolls the page until the specified element is visible in the viewport: {locator}")]
         protected void ScrollToElement(By locator)
         {
             Log.Debug($"Scrolls the page until the specified element is visible in the viewport: '{locator}'");
