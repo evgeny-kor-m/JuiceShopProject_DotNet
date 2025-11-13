@@ -19,13 +19,6 @@ namespace JuiceShopProject.Test.Tests
     [AllureSubSuite("Login Suite")]
     public class LoginTests : BaseTest
     {
-        private AllureLifecycle _allure;
-
-        [SetUp]
-        public void SetupAllure()
-        {
-            _allure = AllureLifecycle.Instance;
-        }
         [Test, Order(1)]
         [AllureName("Проверка открытия главной страницы")]
         [AllureDescription("Проверка открытия главной страницы")]
@@ -36,14 +29,8 @@ namespace JuiceShopProject.Test.Tests
             Log.Information("Verifying home page title.");
 
             string stepId = Guid.NewGuid().ToString();
-            _allure.StartStep(new StepResult { name = "Проверка заголовка страницы" });
-
-
-
-            Assert.That(Driver.Title, Does.Contain("OWASP Juice Shop"),
-                "The page title does not contain 'OWASP Juice Shop'.");
-
-            _allure.StopStep();
+           
+            Assert.That(Driver.Title, Does.Contain("OWASP Juice Shop"), "The page title does not contain 'OWASP Juice Shop'.");
             Log.Information("Home page title verification passed.");
         }
         

@@ -1,9 +1,10 @@
 ﻿// ==============================================
 // Base/BasePage.cs
 // ==============================================
-using Allure.Commons;
+using Allure.NUnit.Attributes;
 using JuiceShopProject.Test.Utilities;
 using OpenQA.Selenium;
+using OpenQA.Selenium.BiDi.BrowsingContext;
 using OpenQA.Selenium.Support.UI;
 using SeleniumExtras.WaitHelpers;
 using Serilog;
@@ -11,6 +12,7 @@ using System;
 using System.IO;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace JuiceShopProject.Test.Base
 {
@@ -36,16 +38,20 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Waits for an element to be visible on the page.
         /// </summary>
+        [AllureStep("Waiting for element visibility: {0}")]
         protected IWebElement WaitForElementVisible(By locator)
         {
+            Log.Debug($"Waiting for element visibility: {locator}");
             return Wait.Until(ExpectedConditions.ElementIsVisible(locator));
         }
 
         /// <summary>
         /// Waits for an element to be clickable on the page.
         /// </summary>
+        [AllureStep("Waiting for element clickable: {0}")]
         protected IWebElement WaitForElementClickable(By locator)
         {
+            Log.Debug($"Waiting for element clickable: {locator}");
             return Wait.Until(ExpectedConditions.ElementToBeClickable(locator));
         }
 
@@ -60,26 +66,32 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Retrieves the page title.
         /// </summary>
+        [AllureStep("Retrieves the page title")]
         public string GetPageTitle()
         {
+            Log.Debug("Retrieves the page title");
             return Driver.Title;
         }
 
         /// <summary>
         /// Retrieves the current page URL.
         /// </summary>
+        [AllureStep("Retrieves the current page URL")]
         public string GetCurrentUrl()
         {
+            Log.Debug("Retrieves the current page URL");
             return Driver.Url;
         }
 
         /// <summary>
         /// Clicks an element after waiting for it to be clickable.
         /// </summary>
+        [AllureStep("Clicking element: {0}")]
         protected void ClickElement(By locator)
         {
             try
             {
+                Log.Debug($"Clicking element: {locator}");
                 WaitForElementClickable(locator).Click();
                 Log.Information($"Элемент успешно нажат: {locator}");
             }
@@ -89,7 +101,7 @@ namespace JuiceShopProject.Test.Base
             }
             catch (WebDriverException ex)
             {
-                Log.Error(ex, $"Ошибка взаимодействия с элементом {locator}.");
+                Log.Error(ex, $"Error interacting with element: {locator}.");
                 throw; // Перебрасываем оригинальное исключение WebDriver
             }
         }
@@ -97,8 +109,10 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Clears the input field and enters the specified text after waiting for visibility.
         /// </summary>
+        [AllureStep("Clears the input field and text '{1}' in element: {0}")]
         protected void EnterText(By locator, string text)
         {
+            Log.Debug($"Clears the input field and enters the specified text '{text}' after waiting for visibility element: '{locator}'");
             var element = WaitForElementVisible(locator);
             element.Clear();
             element.SendKeys(text);
@@ -107,8 +121,10 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Retrieves the text content of a visible element.
         /// </summary>
+        [AllureStep("Retrieves the text content of a visible element: {0}")]
         protected string GetElementText(By locator)
         {
+            Log.Debug($"Retrieves the text content of a visible element: '{locator}'");
             return WaitForElementVisible(locator).Text;
         }
 
@@ -116,11 +132,13 @@ namespace JuiceShopProject.Test.Base
         /// Checks if an element is currently displayed on the page.
         /// Handles NoSuchElementException safely.
         /// </summary>
+        [AllureStep("Checks if an element is currently displayed on the page: {0}")]
         protected bool IsElementDisplayed(By locator)
         {
             try
             {
                 // This requires a separate find call, which respects the implicit wait set on the driver
+                Log.Debug($"Checks if an element is currently displayed on the page: '{locator}'");
                 return Driver.FindElement(locator).Displayed;
             }
             catch (NoSuchElementException)
@@ -132,55 +150,12 @@ namespace JuiceShopProject.Test.Base
         /// <summary>
         /// Scrolls the page until the specified element is visible in the viewport.
         /// </summary>
+        [AllureStep("Scrolls the page until the specified element is visible in the viewport: {0}")]
         protected void ScrollToElement(By locator)
         {
+            Log.Debug($"Scrolls the page until the specified element is visible in the viewport: '{locator}'");
             var element = Driver.FindElement(locator);
             ((IJavaScriptExecutor)Driver).ExecuteScript("arguments[0].scrollIntoView(true);", element);
         }
-        //protected void AllureStep(string stepName, Action action)
-        //{
-        //    Log.Information($"[STEP: {stepName}] started.");
-
-        //    var stepUuid = Guid.NewGuid().ToString();
-        //    var stepResult = new StepResult { name = stepName };
-
-        //    try
-        //    {
-        //        // Получаем UUID текущего теста из контекста
-        //        var testUuid = AllureLifecycle.Instance.Context.Test;
-
-        //        if (string.IsNullOrEmpty(testUuid))
-        //        {
-        //            Log.Warning($"[STEP: {stepName}] No active test context found. Executing without Allure step.");
-        //            action.Invoke();
-        //            return;
-        //        }
-
-        //        // Стартуем шаг с явным указанием родителя
-        //        AllureLifecycle.Instance.StartStep(testUuid, stepUuid, stepResult);
-
-        //        try
-        //        {
-        //            action.Invoke();
-        //            AllureLifecycle.Instance.UpdateStep(stepUuid, s => s.status = Status.passed);
-        //            Log.Information($"[STEP: {stepName}] successfully finished.");
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            AllureLifecycle.Instance.UpdateStep(stepUuid, s => s.status = Status.failed);
-        //            Log.Error(ex, $"[STEP: {stepName}] завершился с ошибкой.");
-        //            throw;
-        //        }
-        //        finally
-        //        {
-        //            AllureLifecycle.Instance.StopStep(stepUuid);
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Log.Error($"[STEP: {stepName}] Fail with Exception: {ex}");
-        //        throw;
-        //    }
-        //}
     }
 }

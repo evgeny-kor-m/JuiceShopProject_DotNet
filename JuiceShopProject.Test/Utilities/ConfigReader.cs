@@ -54,5 +54,13 @@ namespace JuiceShopProject.Test.Utilities
             return Path.Combine(projectRoot, relativePath);
         }
         public static string GetProjectRoot() => projectRoot;
+        
+        // --- НОВЫЕ МЕТОДЫ ДЛЯ ЧТЕНИЯ УРОВНЕЙ ЛОГА ---
+        public static string GetRunLogLevel() =>
+            configData["LogLevels"]?["RunLog"]?.ToString() ?? "Information";
+
+        public static string GetTestLogLevel() =>
+            configData["LogLevels"]?["TestLog"]?.ToString() ?? "Debug";
+        // --- КОНЕЦ НОВЫХ МЕТОДОВ ---
     }
 }

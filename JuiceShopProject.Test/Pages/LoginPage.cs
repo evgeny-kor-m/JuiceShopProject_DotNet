@@ -6,6 +6,7 @@ using JuiceShopProject.Test.Base;
 using OpenQA.Selenium;
 using Allure.Net.Commons;
 using Allure.NUnit.Attributes;
+using Serilog;
 
 namespace JuiceShopProject.Test.Pages
 {
@@ -24,29 +25,21 @@ namespace JuiceShopProject.Test.Pages
         [AllureStep("Открываем страницу логина")]
         public LoginPage Open()
         {
-            //AllureStep("Открываем страницу логина", () =>
-            //{
-                Driver.Navigate().GoToUrl($"{baseUrl}/#/login");
-            //});
+            Driver.Navigate().GoToUrl($"{baseUrl}/#/login");
+            Log.Information($"Navigated to login page: {baseUrl}/#/login");
             return this;
         }
 
         /// <summary>
         /// Выполнить вход
         /// </summary>
-        [AllureStep("Вводим логин '{username}' и пароль")]
+        [AllureStep("Вводим логин '{username}' и пароль '{password}'")]
         public LoginPage Login(string username, string password)
         {
-            //AllureStep($"Вводим логин '{username}' и пароль", () =>
-            //{
-                EnterText(emailInput, username);
-                EnterText(passwordInput, password);
-            //});
-
-            //AllureStep("Нажимаем кнопку Login", () =>
-            //{
-                ClickElement(loginButton);
-            //});
+            EnterText(emailInput, username);
+            EnterText(passwordInput, password);
+            ClickElement(loginButton);
+            Log.Information($"Attempting login with user: {username}");
 
             return this;
         }
@@ -57,17 +50,15 @@ namespace JuiceShopProject.Test.Pages
         [AllureStep("Получаем текст ошибки")]
         public string GetErrorMessage()
         {
-            string error = "";
-            //AllureStep("Получаем текст ошибки", () =>
-            //{
-                error = GetElementText(errorMessage);
-            //});
-            return error;
+            // Поскольку GetElementText уже имеет AllureStep, 
+            // дополнительный шаг здесь не нужен, просто вызываем базовый метод.
+            return GetElementText(errorMessage);
         }
 
         /// <summary>
         /// Проверка отображения ошибки
         /// </summary>
+        [AllureStep("Проверяем, отображается ли сообщение об ошибке")]
         public bool IsErrorDisplayed()
         {
             return IsElementDisplayed(errorMessage);

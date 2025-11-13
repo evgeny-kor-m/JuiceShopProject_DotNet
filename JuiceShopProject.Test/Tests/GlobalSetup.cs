@@ -5,6 +5,7 @@ using Serilog.Debugging;
 using NUnit.Framework;
 using System;
 using System.IO;
+using Serilog.Events;
 
 [SetUpFixture]
 public class GlobalSetup
@@ -22,7 +23,7 @@ public class GlobalSetup
         string screenshotsDir = ConfigReader.GetScreenshotsPath();
         string logsDir = ConfigReader.GetLogsPath();
 
-        string timestamp = DateTime.Now.ToString("yyyy-MM-dd");
+        string timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
         allureResultsPath = Path.Combine(projectRoot, "TestResults", $"Allure_{timestamp}");
 
         Directory.CreateDirectory(screenshotsDir);
@@ -49,18 +50,25 @@ public class GlobalSetup
         Environment.SetEnvironmentVariable("allure_results_directory", allureResultsPath);
 
         // Инициализация логгера
-        string logFilePath = Path.Combine(logsDir, $"test-run-{timestamp}.log");
+        // Получаем уровень для ГЛОБАЛЬНОГО лога
+        if (!Enum.TryParse(ConfigReader.GetRunLogLevel(), true, out LogEventLevel runLogLevel))
+        {
+            runLogLevel = LogEventLevel.Information; // Fallback
+        }
+        string logFilePath = Path.Combine(logsDir, $"RunLog-{timestamp}.log");
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .WriteTo.Console()
+            .MinimumLevel.Is(runLogLevel) // Устанавливаем глобальный уровень
+            .Enrich.With<TestNameEnricher>() // ✅ Теперь будет "GLOBAL" вместо пустоты
+            .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information) // Консоль часто ограничивают
             .WriteTo.File(
                 path: logFilePath,
-                rollingInterval: RollingInterval.Infinite,
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                restrictedToMinimumLevel: runLogLevel, // Применяем уровень к файлу
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{TestName}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
         Log.Information("\n\n===================================");
         Log.Information("====== GLOBAL SETUP STARTED =======");
+        Log.Information($"Log level (Run): {runLogLevel}"); // Логируем установленный уровень
         Log.Information($"Project root: {projectRoot}");
         Log.Information($"Log file: {logFilePath}");
         Log.Information($"Screenshots: {screenshotsDir}");
@@ -68,6 +76,8 @@ public class GlobalSetup
         Log.Information($"Allure config: {allureConfigPath}");
         Log.Information($"Test run started: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         Log.Information("===================================");
+        Log.Information("====== GLOBAL SETUP COMPLETED =======");
+
 
         TestContext.Progress.WriteLine($"✅ Log file: {logFilePath}");
         TestContext.Progress.WriteLine($"✅ Allure results: {allureResultsPath}");
@@ -89,6 +99,7 @@ public class GlobalSetup
         GenerateAllureReport();
 
         Log.CloseAndFlush();
+        Log.Information("=== GLOBAL TEARDOWN COMPLETED ===\n");
         TestContext.Progress.WriteLine("=== GLOBAL TEARDOWN COMPLETED ===\n");
     }
     private void GenerateAllureReport()
