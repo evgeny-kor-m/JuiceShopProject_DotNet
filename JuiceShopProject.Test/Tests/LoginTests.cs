@@ -48,8 +48,10 @@ namespace JuiceShopProject.Test.Tests
                      .Login("admin@juice-sh.op", "admin123");
 
             // Assert
-            Assert.That(Driver.Url, Does.Contain("account"),
-                "User should be redirected to account page after successful login.");
+            bool isLoggedIn = BasePageInstance.IsUserLoggedIn(); // Используем BasePageInstance, созданный в SetUp
+
+            Assert.That(isLoggedIn, Is.True,
+                "User should be logged in, but the Logout button is not visible.");
 
             Log.Information("Login successful.");
            

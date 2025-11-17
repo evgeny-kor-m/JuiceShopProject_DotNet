@@ -4,6 +4,7 @@
 
 using Allure.Net.Commons;
 using JuiceShopProject.Test.Drivers;
+using JuiceShopProject.Test.Pages;
 using JuiceShopProject.Test.Utilities;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using NUnit.Framework;
@@ -28,7 +29,8 @@ namespace JuiceShopProject.Test.Base
         protected IWebDriver Driver;
         private string _testLogFilePath;
         private ILogger _originalGlobalLogger;
-        
+        protected BasePage BasePageInstance;
+
         [SetUp]
         public void SetUp()
         {
@@ -47,10 +49,16 @@ namespace JuiceShopProject.Test.Base
 
             Log.Information("Driver initialized successfully.");
 
+            
+
             // Navigation to the base URL from configuration
             string baseUrl = ConfigReader.GetBaseUrl() ?? "http://localhost:3000";
             Driver.Navigate().GoToUrl(baseUrl);
             Log.Information($"Navigated to: {baseUrl}");
+
+            BasePageInstance = new LoginPage(Driver);
+            BasePageInstance.DismissWelcomeBanner();
+
         }
 
         [TearDown]

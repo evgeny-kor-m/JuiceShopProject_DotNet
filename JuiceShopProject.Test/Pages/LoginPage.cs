@@ -22,7 +22,7 @@ namespace JuiceShopProject.Test.Pages
         /// <summary>
         /// Открыть страницу логина
         /// </summary>
-        [AllureStep("Открываем страницу логина")]
+        [AllureStep("Open Login Page")]
         public LoginPage Open()
         {
             Driver.Navigate().GoToUrl($"{baseUrl}/#/login");
@@ -33,13 +33,13 @@ namespace JuiceShopProject.Test.Pages
         /// <summary>
         /// Выполнить вход
         /// </summary>
-        [AllureStep("Вводим логин '{username}' и пароль '{password}'")]
+        [AllureStep("Enter username '{username}' and password '{password}'")]
         public LoginPage Login(string username, string password)
         {
             EnterText(emailInput, username);
             EnterText(passwordInput, password);
             ClickElement(loginButton);
-            Log.Information($"Attempting login with user: {username}");
+            Log.Information($"Attempting login with user: '{username}' and password: '{password}'");
 
             return this;
         }
