@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <Folder Include="Dependencies\" />
+    <Folder Include="BusinessLogic\" />
     <Folder Include="TestResults\" />
     <Folder Include="TestData\" />
   </ItemGroup>
