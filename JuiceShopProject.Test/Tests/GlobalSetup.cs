@@ -21,7 +21,7 @@ public class GlobalSetup
         TestContext.Progress.WriteLine("\n\n=== GLOBAL SETUP STARTED ===");
         SelfLog.Enable(Console.Error);
 
-        // Создание директорий
+        // Create directories
         projectRoot = ConfigReader.GetProjectRoot();
         screenshotsDir = ConfigReader.GetScreenshotsPath();
         logsDir = ConfigReader.GetLogsPath();
@@ -57,7 +57,7 @@ public class GlobalSetup
 
         TestContext.Progress.WriteLine("\n=== GLOBAL TEARDOWN STARTED ===");
 
-        // Генерация Allure отчета
+        // Generate the Allure report
         GenerateAllureReport();
 
         Log.CloseAndFlush();
@@ -73,7 +73,7 @@ public class GlobalSetup
 
             if (!string.IsNullOrEmpty(allureResultsPath) && Directory.Exists(allureResultsPath))
             {
-                // Проверяем наличие JSON файлов
+                // Check that JSON result files exist
                 var jsonFiles = Directory.GetFiles(allureResultsPath, "*.json");
                 
                 if (jsonFiles.Length == 0){
@@ -148,13 +148,13 @@ public class GlobalSetup
     {
         allureResultsPath = Path.Combine(projectRoot, "TestResults", $"Allure_{timestamp}");
 
-        // ВАЖНО: Очистить старую директорию и создать новую
+        // IMPORTANT: clear the old directory and create a new one
         if (Directory.Exists(allureResultsPath))
             Directory.Delete(allureResultsPath, true);
 
         Directory.CreateDirectory(allureResultsPath);
 
-        // Конфигурация Allure - ЭТО ОБЯЗАТЕЛЬНО!
+        // Allure configuration - REQUIRED!
         string allureConfigPath = Path.Combine(projectRoot, "allureConfig.json");
         var allureConfig = new JObject(
             new JProperty("allure", new JObject(
@@ -164,7 +164,7 @@ public class GlobalSetup
 
         File.WriteAllText(allureConfigPath, allureConfig.ToString());
 
-        // Устанавливаем переменные окружения
+        // Set environment variables
         Environment.SetEnvironmentVariable("ALLURE_CONFIG", allureConfigPath);
         Environment.SetEnvironmentVariable("allure_results_directory", allureResultsPath);
 
@@ -177,7 +177,7 @@ public class GlobalSetup
 
     private void CreateGlobalTestLogger(string timestamp)
     {
-        // Получаем уровень для ГЛОБАЛЬНОГО лога
+        // Get the level for the GLOBAL (run) log
         if (!Enum.TryParse(ConfigReader.GetRunLogLevel(), true, out LogEventLevel runLogLevel))
             runLogLevel = LogEventLevel.Information; // Fallback
 
@@ -185,12 +185,12 @@ public class GlobalSetup
         try
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(runLogLevel) // Устанавливаем глобальный уровень
-                .Enrich.With<TestNameEnricher>() // ✅ Теперь будет "GLOBAL" вместо пустоты
-                .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information) // Консоль часто ограничивают
+                .MinimumLevel.Is(runLogLevel) // Set the global level
+                .Enrich.With<TestNameEnricher>() // Adds the TestName property to every log entry
+                .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information) // Console output is usually limited
                 .WriteTo.File(
                     path: logFilePath,
-                    restrictedToMinimumLevel: runLogLevel, // Применяем уровень к файлу
+                    restrictedToMinimumLevel: runLogLevel, // Apply the level to the file
                     outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{TestName}] {Message:lj}{NewLine}{Exception}")
                 .CreateLogger();
         }
@@ -198,7 +198,7 @@ public class GlobalSetup
         {
             Log.Error($"❌ Global test logger creation error: {ex.Message}");
         }
-        Log.Information($"Log level (Run): {runLogLevel}"); // Логируем установленный уровень
+        Log.Information($"Log level (Run): {runLogLevel}"); // Log the configured level
         Log.Information($"Log file: {logFilePath}");
 
         TestContext.Progress.WriteLine($"✅ Log file: {logFilePath}");

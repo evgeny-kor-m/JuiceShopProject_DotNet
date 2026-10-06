@@ -139,7 +139,7 @@ namespace JuiceShopProject.Test.Base
             catch (WebDriverException ex)
             {
                 Log.Error(ex, $"Error interacting with element: {locator}.");
-                throw; // Перебрасываем оригинальное исключение WebDriver
+                throw; // Rethrow the original WebDriver exception
             }
         }
 
@@ -221,8 +221,8 @@ namespace JuiceShopProject.Test.Base
         [AllureStep("Closing the Welcome Banner (if present)")]
         public void DismissWelcomeBanner()
         {
-            // Используем короткий, локальный WebDriverWait, чтобы не ждать весь ExplicitWait,
-            // если баннер не появился (например, после успешного логина).
+            // Use a short local WebDriverWait so we don't wait the full ExplicitWait
+            // when the banner does not appear (for example, after a successful login).
             WebDriverWait shortWait = new WebDriverWait(Driver, TimeSpan.FromSeconds(ConfigReader.GetImplicitWait()));
 
             Log.Information("Attempting to close the Welcome Banner.");
@@ -236,21 +236,21 @@ namespace JuiceShopProject.Test.Base
             }
             catch (TimeoutException)
             {
-                // Это нормально, если баннер не появился (например, если мы уже на странице логина или после логина)
+                // Expected when the banner does not appear (for example, already on the login page or after login)
                 Log.Debug("Welcome Banner did not appear or was not clickable within 5 seconds, skipping dismissal.");
             }
             catch (Exception ex)
             {
-                // Логируем любые другие неожиданные ошибки
+                // Log any other unexpected errors
                 Log.Error(ex, "An unexpected error occurred while trying to dismiss the Welcome Banner.");
             }
         }
 
         /// <summary>
-        /// Проверяет, что пользователь авторизован, проверяя наличие кнопки 'Logout'.
-        /// Для этого сначала нужно открыть меню "Account".
+        /// Checks that the user is logged in by looking for the 'Logout' button.
+        /// The "Account" menu has to be opened first.
         /// </summary>
-        /// <returns>True, если кнопка Logout видна.</returns>
+        /// <returns>True if the Logout button is visible.</returns>
         [AllureStep("Checking if button (Logout) exists")]
         public bool IsUserLoggedIn()
         {
@@ -269,7 +269,7 @@ namespace JuiceShopProject.Test.Base
             }
             catch (Exception)
             {
-                // Если не найдена или не отображается, значит, пользователь не вошел
+                // Not found or not displayed means the user is not logged in
                 Log.Debug($"Element not found: {LogoutButton}");
             }
             try
@@ -282,7 +282,7 @@ namespace JuiceShopProject.Test.Base
             }
             //finally
             //{
-            //    // Необязательно, но полезно закрыть меню, кликнув снова на Account
+            //    // Optional, but useful: close the menu by clicking Account again
             //    try
             //    {
             //        ClickElement(AccountButton);
@@ -299,9 +299,9 @@ namespace JuiceShopProject.Test.Base
 
         private void TryDismissBlockingOverlay()
         {
-            // 1. Сохраняем оригинальный таймаут неявного ожидания
+            // 1. Save the original implicit wait timeout
             TimeSpan originalImplicitWait = Driver.Manage().Timeouts().ImplicitWait;
-            // 2. Устанавливаем его в 0 секунд для МГНОВЕННОЙ проверки с FindElements
+            // 2. Set it to 0 seconds for an INSTANT check with FindElements
             Driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(0);
 
             WebDriverWait longWait = new WebDriverWait(Driver, TimeSpan.FromSeconds(10));
@@ -313,13 +313,13 @@ namespace JuiceShopProject.Test.Base
 
                 foreach (var locator in BlockingOverlays)
                 {
-                    // МГНОВЕННАЯ ПРОВЕРКА: Если элемент присутствует в DOM (Count > 0)
+                    // INSTANT CHECK: the element is present in the DOM (Count > 0)
                     if (Driver.FindElements(locator).Count > 0)
                     {
                         wasOverlayFound = true;
                         Log.Information($"Blocking overlay found: {locator}. Waiting for its invisibility (max 10s).");
 
-                        // Если элемент найден, используем ДЛИННОЕ ЯВНОЕ ожидание на его исчезновение
+                        // If the element is found, use a LONG EXPLICIT wait for it to disappear
                         try
                         {
                             longWait.Until(ExpectedConditions.InvisibilityOfElementLocated(locator));
@@ -334,14 +334,14 @@ namespace JuiceShopProject.Test.Base
                             Log.Error(ex, $"Error while waiting for overlay {locator} to dismiss.");
                         }
 
-                        // Устранив один блокировщик, можем считать, что путь свободен.
+                        // Once one blocker is gone, treat the path as clear.
                         break;
                     }
                 }
             }
             finally
             {
-                // 3. Восстанавливаем оригинальный неявный таймаут в любом случае
+                // 3. Restore the original implicit timeout in any case
                 Driver.Manage().Timeouts().ImplicitWait = originalImplicitWait;
             }
 

@@ -55,12 +55,12 @@ namespace JuiceShopProject.Test.Utilities
         }
         public static string GetProjectRoot() => projectRoot;
         
-        // --- НОВЫЕ МЕТОДЫ ДЛЯ ЧТЕНИЯ УРОВНЕЙ ЛОГА ---
+        // --- Log level readers ---
         public static string GetRunLogLevel() =>
             configData["LogLevels"]?["RunLog"]?.ToString() ?? "Information";
 
         public static string GetTestLogLevel() =>
             configData["LogLevels"]?["TestLog"]?.ToString() ?? "Debug";
-        // --- КОНЕЦ НОВЫХ МЕТОДОВ ---
+        // --- End of log level readers ---
     }
 }

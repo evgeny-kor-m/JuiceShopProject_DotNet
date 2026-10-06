@@ -20,7 +20,7 @@ namespace JuiceShopProject.Test.Pages
         public LoginPage(IWebDriver driver) : base(driver) { }
 
         /// <summary>
-        /// Открыть страницу логина
+        /// Opens the login page
         /// </summary>
         [AllureStep("Open Login Page")]
         public LoginPage Open()
@@ -31,7 +31,7 @@ namespace JuiceShopProject.Test.Pages
         }
 
         /// <summary>
-        /// Выполнить вход
+        /// Logs in with the given credentials
         /// </summary>
         [AllureStep("Enter username '{username}' and password '{password}'")]
         public LoginPage Login(string username, string password)
@@ -45,20 +45,20 @@ namespace JuiceShopProject.Test.Pages
         }
 
         /// <summary>
-        /// Получить сообщение об ошибке
+        /// Gets the error message text
         /// </summary>
-        [AllureStep("Получаем текст ошибки")]
+        [AllureStep("Get the error message text")]
         public string GetErrorMessage()
         {
-            // Поскольку GetElementText уже имеет AllureStep, 
-            // дополнительный шаг здесь не нужен, просто вызываем базовый метод.
+            // GetElementText already has its own AllureStep,
+            // so no extra step is needed here; just call the base method.
             return GetElementText(errorMessage);
         }
 
         /// <summary>
-        /// Проверка отображения ошибки
+        /// Checks whether the error message is displayed
         /// </summary>
-        [AllureStep("Проверяем, отображается ли сообщение об ошибке")]
+        [AllureStep("Check whether the error message is displayed")]
         public bool IsErrorDisplayed()
         {
             return IsElementDisplayed(errorMessage);

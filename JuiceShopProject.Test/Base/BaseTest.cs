@@ -35,7 +35,7 @@ namespace JuiceShopProject.Test.Base
         public void SetUp()
         {
 
-            // Назначаем новый временный логгер статическому полю Log.Logger
+            // Assign a new temporary logger to the static Log.Logger field
             Log.Logger = CreateLocalTestLoger();
 
             Log.Information($"TEST SETUP STARTED.");
@@ -67,7 +67,7 @@ namespace JuiceShopProject.Test.Base
             var outcome = TestContext.CurrentContext.Result.Outcome.Status;
             var testName = TestContext.CurrentContext.Test.FullName;
             
-            // Логируем все ошибки, используя временный логгер
+            // Log all failures using the temporary logger
             if ((Driver != null) && outcome == NUnit.Framework.Interfaces.TestStatus.Failed)
             {
                 AttachScreenshotToAllureReport(testName);
@@ -104,23 +104,23 @@ namespace JuiceShopProject.Test.Base
                 var screenshot = ((ITakesScreenshot)Driver).GetScreenshot();
                 screenshot.SaveAsFile(screenshotPath);
 
-                // Простое добавление скриншота без проверки контекста
+                // Attach the screenshot directly, without checking the context
                 try
                 {
-                    // 1. Копируем файл в папку Allure, чтобы он был доступен после завершения теста
-                    // (Используем GUID для уникальности имени файла внутри отчета Allure)
+                    // 1. Copy the file to the Allure folder so it stays available after the test finishes
+                    // (A GUID keeps the file name unique inside the Allure report)
                     string attachmentFileName = Guid.NewGuid().ToString() + ".png";
                     string attachmentSourcePath = AllureLifecycle.Instance.ResultsDirectory + Path.DirectorySeparatorChar + attachmentFileName;
 
                     File.Copy(screenshotPath, attachmentSourcePath, true);
 
-                    // 2. Добавляем информацию о прикреплении к текущему тесту
+                    // 2. Add the attachment info to the current test
                     AllureLifecycle.Instance.UpdateTestCase(testResult =>
                     {
                         testResult.attachments.Add(new Attachment
                         {
                             name = $"Screenshot: {safeTestName}",
-                            source = attachmentFileName, // Имя файла, которое Allure будет искать в своей папке
+                            source = attachmentFileName, // File name Allure will look for in its own folder
                             type = "image/png"
                         });
                     });
@@ -140,59 +140,59 @@ namespace JuiceShopProject.Test.Base
         }
         private void AttachLogFileToAllureReport(string testName)
         {
-            // --- НОВОЕ: Прикрепление Лог-файла ---
+            // --- Attach the log file ---
             if (File.Exists(_testLogFilePath))
             {
                 try
                 {
-                    // 1. Копируем файл лога в папку Allure
+                    // 1. Copy the log file to the Allure folder
                     string attachmentFileName = Guid.NewGuid().ToString() + ".log";
                     string attachmentSourcePath = AllureLifecycle.Instance.ResultsDirectory + Path.DirectorySeparatorChar + attachmentFileName;
                     File.Copy(_testLogFilePath, attachmentSourcePath, true);
 
-                    // 2. Добавляем информацию о прикреплении к текущему тесту
+                    // 2. Add the attachment info to the current test
                     AllureLifecycle.Instance.UpdateTestCase(testResult =>
                     {
                         testResult.attachments.Add(new Attachment
                         {
                             name = $"Test Log: {testName}",
                             source = attachmentFileName,
-                            type = "text/plain" // Тип для лог-файлов
+                            type = "text/plain" // MIME type for log files
                         });
                     });
 
-                    Log.Information($"Лог-файл успешно прикреплен к Allure отчету.");
+                    Log.Information($"Log file attached to the Allure report.");
                 }
                 catch (Exception allureEx)
                 {
-                    Log.Warning($"Не удалось прикрепить лог к Allure: {allureEx.Message}");
+                    Log.Warning($"Could not attach log file to Allure: {allureEx.Message}");
                 }
             }
         }
         private ILogger CreateLocalTestLoger()
         {
-            // 1. Создание уникального пути для лог-файла текущего теста
+            // 1. Build a unique log file path for the current test
             var safeTestName = string.Join("_", TestContext.CurrentContext.Test.MethodName.Split(Path.GetInvalidFileNameChars()));
             _testLogFilePath = Path.Combine(ConfigReader.GetLogsPath(), $"{safeTestName}_{DateTime.Now:yyyyMMdd_HHmmss}.log");
             Directory.CreateDirectory(Path.GetDirectoryName(_testLogFilePath));
 
-            // Получаем уровень для ИЗОЛИРОВАННОГО лога
+            // Get the level for the ISOLATED (per-test) log
             if (!Enum.TryParse(ConfigReader.GetTestLogLevel(), true, out LogEventLevel testLogLevel))
             {
                 testLogLevel = LogEventLevel.Debug; // Fallback
             }
             _originalGlobalLogger = Log.Logger;
 
-            // 3. Настройка временного Serilog для текущего теста:
-            // Создаем новый логгер, который пишет в уникальный файл И направляет ВСЕ сообщения в сохраненный глобальный логгер
+            // 3. Configure a temporary Serilog logger for the current test:
+            // Create a new logger that writes to a unique file AND forwards ALL messages to the saved global logger
             var testLogger = new LoggerConfiguration()
                 .MinimumLevel.Is(testLogLevel)
-                .Enrich.With<TestNameEnricher>() // ✅ Добавляем enricher
+                .Enrich.With<TestNameEnricher>() // Add the enricher
                 .WriteTo.File(_testLogFilePath,
                               restrictedToMinimumLevel: testLogLevel,
                               //outputTemplate: "{Timestamp:HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
                               outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{TestName}] {Message:lj}{NewLine}{Exception}")
-                // Перенаправляем все логи в исходный глобальный логгер
+                // Forward all logs to the original global logger
                 .WriteTo.Logger(_originalGlobalLogger)
                 .CreateLogger();
 
@@ -201,15 +201,15 @@ namespace JuiceShopProject.Test.Base
         }
         private void CloseLocalTestLoger()
         {
-            // Закрываем и очищаем буферы временного логгера
+            // Close and flush the temporary logger
             Log.CloseAndFlush();
 
-            // Восстанавливаем оригинальный глобальный логгер
+            // Restore the original global logger
             if (_originalGlobalLogger != null)
             {
                 Log.Logger = _originalGlobalLogger;
             }
-            // Удаляем временный файл после прикрепления
+            // Delete the temporary file after it has been attached
             try
             {
                 if (File.Exists(_testLogFilePath))

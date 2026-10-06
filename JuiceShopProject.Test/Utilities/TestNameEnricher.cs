@@ -19,7 +19,7 @@ namespace JuiceShopProject.Test.Utilities
             }
             catch
             {
-                // Если вызывается вне контекста теста
+                // Called outside of a test context
             }
 
             var property = propertyFactory.CreateProperty("TestName", testName);

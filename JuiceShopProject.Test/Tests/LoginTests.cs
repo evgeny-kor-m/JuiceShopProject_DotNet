@@ -6,7 +6,7 @@ using NUnit.Framework;
 using Allure.Net.Commons;
 using Allure.NUnit.Attributes;
 using OpenQA.Selenium;
-using NUnit.Allure.Core;  // ВАЖНО: Добавить этот using
+using NUnit.Allure.Core;  // IMPORTANT: this using is required
 using JuiceShopProject.Test.Base;
 using JuiceShopProject.Test.Pages;
 using Serilog;
@@ -14,14 +14,14 @@ using Serilog;
 namespace JuiceShopProject.Test.Tests
 {
     [TestFixture]
-    [AllureNUnit]  // ЭТО КРИТИЧНО ДЛЯ РАБОТЫ ALLURE!
+    [AllureNUnit]  // REQUIRED FOR ALLURE TO WORK!
     [AllureSuite("UI Tests")]
     [AllureSubSuite("Login Suite")]
     public class LoginTests : BaseTest
     {
         [Test, Order(1)]
-        [AllureName("Проверка открытия главной страницы")]
-        [AllureDescription("Проверка открытия главной страницы")]
+        [AllureName("Home page opens")]
+        [AllureDescription("Verifies that the home page opens")]
         [AllureSeverity(SeverityLevel.critical)]
         public void Test_OpenHomePage()
         {
@@ -37,7 +37,7 @@ namespace JuiceShopProject.Test.Tests
         [Test]
         [AllureSeverity(SeverityLevel.critical)]
         [AllureTag("Smoke", "Login")]
-        [AllureDescription("Проверка успешного входа в систему с валидными данными")]
+        [AllureDescription("Verifies successful login with valid credentials")]
         public void Test_SuccessfulLogin()
         {
             // Arrange
@@ -48,7 +48,7 @@ namespace JuiceShopProject.Test.Tests
                      .Login("admin@juice-sh.op", "admin123");
 
             // Assert
-            bool isLoggedIn = BasePageInstance.IsUserLoggedIn(); // Используем BasePageInstance, созданный в SetUp
+            bool isLoggedIn = BasePageInstance.IsUserLoggedIn(); // Use the BasePageInstance created in SetUp
 
             Assert.That(isLoggedIn, Is.True,
                 "User should be logged in, but the Logout button is not visible.");
@@ -56,11 +56,11 @@ namespace JuiceShopProject.Test.Tests
             Log.Information("Login successful.");
            
         }
-        [Ignore("Тест временно отключен")]
+        [Ignore("Test temporarily disabled")]
         [Test]
         [AllureSeverity(SeverityLevel.normal)]
         [AllureTag("Regression", "Login")]
-        [AllureDescription("Проверка отображения ошибки при неверных данных")]
+        [AllureDescription("Verifies that an error is shown for invalid credentials")]
         public void Test_InvalidLogin()
         {
 
@@ -82,10 +82,10 @@ namespace JuiceShopProject.Test.Tests
             Log.Information("Invalid login validation displayed correctly.");
         }
 
-        [Ignore("Тест временно отключен")]
+        [Ignore("Test temporarily disabled")]
         [Test]
         [AllureTag("Negative", "Login")]
-        [AllureDescription("Проверка валидации пустых полей")]
+        [AllureDescription("Verifies validation of empty fields")]
         public void Test_EmptyCredentials()
         {
             // Arrange
